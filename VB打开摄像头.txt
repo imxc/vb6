@@ -1,0 +1,71 @@
+﻿'支持win7
+'复制即用
+Option Explicit
+Private Declare Function SendMessage Lib "USER32" Alias "SendMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, lParam As Any) As Long
+Private Declare Function CapCreateCaptureWindow Lib "avicap32.dll" Alias "capCreateCaptureWindowA" (ByVal lpszWindowName As String, ByVal dwStyle As Long, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hwndParent As Long, ByVal nID As Long) As Long
+Const CONNECT As Long = 1034
+Const DISCONNECT As Long = 1035
+Const GET_FRAME As Long = 1084
+Const COPY As Long = 1054
+Dim HwndVal As Long
+Private WithEvents Picture1 As PictureBox
+Private WithEvents Timer1 As Timer
+
+Private Sub Form_Load()
+Set Picture1 = Controls.Add("VB.PictureBox", "Picture1")
+Set Timer1 = Controls.Add("VB.Timer", "Timer1")
+Me.Height = 7500
+Me.Width = 12500
+Picture1.Move 0, 0, Me.ScaleWidth, Me.ScaleHeight
+Picture1.Visible = True
+Me.Caption = "开启摄像头"
+Me.Move (Screen.Width - Me.Width) \ 2, (Screen.Height - Me.Height) \ 2
+Timer1.Interval = 100: Timer1.Enabled = False
+Call STARTCAM
+End Sub
+
+Private Sub Form_Resize()
+If Me.WindowState <> 1 Then
+Picture1.Move 0, 0, Me.ScaleWidth, Me.ScaleHeight
+If Timer1.Enabled = False Then Timer1.Enabled = True
+Else
+Timer1.Enabled = False
+End If
+End Sub
+
+Private Sub Form_Unload(Cancel As Integer)
+Call STOPCAM
+Timer1.Enabled = False
+Set Form1 = Nothing
+End Sub
+
+Private Sub Timer1_Timer()
+SendMessage HwndVal, GET_FRAME, 0, 0
+SendMessage HwndVal, COPY, 0, 0
+Picture1.Picture = Clipboard.GetData
+End Sub
+
+Sub STARTCAM()
+HwndVal = CapCreateCaptureWindow("摄像头", 0, 0, 0, 640, 480, Me.hwnd, 0)
+DoEvents
+SendMessage2 HwndVal, CONNECT, 0, 0
+Timer1.Enabled = True
+End Sub
+
+Sub STOPCAM()
+DoEvents
+SendMessage HwndVal, DISCONNECT, 0, 0
+Timer1.Enabled = False
+End Sub
+
+Private Function SendMessage2(ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByVal lParam As Long) As Long
+Dim i As Long
+Dim iret As Boolean
+Dim ZC As Long
+For i = 1 To 10
+ZC = SendMessage(hwnd, wMsg, wParam, lParam)
+iret = ZC
+SendMessage2 = ZC
+If iret Then Exit For
+Next i
+End Function
